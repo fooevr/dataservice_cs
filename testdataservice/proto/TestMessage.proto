@@ -1,0 +1,43 @@
+syntax = "proto3";
+
+package com.variflight.dataservice.test;
+
+import "google/protobuf/wrappers.proto";
+import "google/protobuf/empty.proto";
+
+// 学生
+message student{
+    // 学生ID
+    int32 id = 1;
+    // 姓名
+    string name = 2;
+    int32 age = 3;
+    map<string, string> tags = 4;
+    google.protobuf.StringValue comment = 5;
+    google.protobuf.Int32Value ivx = 6;
+    map<string, google.protobuf.Int64Value> tags2 = 7;
+    student s = 100;
+    map<string, student> ms = 1001;
+    repeated student rs = 10009;
+    repeated google.protobuf.Int64Value ri = 10;
+}
+
+message exam{
+    int32 id = 1;
+    string cls = 2;
+    int32 studentid = 3;
+    int32 score = 4;
+}
+
+message StudentScore{
+    student s = 1;
+    map<string,exam> exams = 2;
+}
+
+message StudentScoresMap{
+    map<int32, StudentScore> results = 1;
+}
+
+service ScoreService{
+    rpc GetAllScores(google.protobuf.Empty)returns(StudentScoresMap);
+}
