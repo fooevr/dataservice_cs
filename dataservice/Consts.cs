@@ -1,6 +1,6 @@
 ﻿using System;
 
-namespace com.variflight.dataservice.cs
+namespace com.variflight.dataservice.client
 {
     public enum ChangeType
     {

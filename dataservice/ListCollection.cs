@@ -4,7 +4,7 @@ using System.Collections.ObjectModel;
 using Google.Protobuf;
 using Google.Protobuf.Reflection;
 
-namespace com.variflight.dataservice.cs
+namespace com.variflight.dataservice.client
 {
     public class ListCollection<V, T> : ObservableCollection<V>
     {

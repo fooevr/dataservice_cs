@@ -3,6 +3,10 @@ using System.Collections;
 using Google.Protobuf;
 using System.Linq;
 using Google.Protobuf.WellKnownTypes;
+using System.Collections.Generic;
+using com.variflight.dataservice.client;
+using Com.Variflight.Dataservice.Test;
+using Grpc.Core.Interceptors;
 
 namespace testdataservice
 {
@@ -10,6 +14,14 @@ namespace testdataservice
     {
         static void Main(string[] args)
         {
+            var channel = new Grpc.Core.Channel("127.0.0.1:11180", Grpc.Core.ChannelCredentials.Insecure);
+            var client = new Com.Variflight.Dataservice.Test.ScoreService.ScoreServiceClient(channel.Intercept(new Intersection()));
+            var cancle = client.LoopCall(client.GetAllScoresAsync, new Empty(), (dao)=> { });
+            System.Threading.Thread.Sleep(5000);
+            Console.WriteLine("canceling");
+            cancle.Cancel();
+            Console.WriteLine("canceled");
+            Console.Read();
             var d = new Com.Variflight.Dataservice.Test.student
             {
                 Age = 30,

@@ -7,7 +7,7 @@ using System.Threading;
 using Google.Protobuf;
 using Google.Protobuf.Reflection;
 
-namespace com.variflight.dataservice.cs
+namespace com.variflight.dataservice.client
 {
     public class MapCollection<K, V, T> : ObservableCollection<V>, IDictionary<K, V>
     {

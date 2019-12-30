@@ -1,10 +1,10 @@
 using System;
 using System.ComponentModel;
 using System.Collections.ObjectModel;
-using com.variflight.dataservice.cs;
 using com.variflight.dataservice;
 using Google.Protobuf.WellKnownTypes;
 using Google.Protobuf;
+using com.variflight.dataservice.client;
 
 /*
  *

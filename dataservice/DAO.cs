@@ -2,7 +2,7 @@
 using Google.Protobuf;
 using Google.Protobuf.Reflection;
 
-namespace com.variflight.dataservice.cs
+namespace com.variflight.dataservice.client
 {
     public interface DAO
     {

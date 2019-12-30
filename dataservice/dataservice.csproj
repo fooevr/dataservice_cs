@@ -2,10 +2,11 @@
 
   <PropertyGroup>
     <TargetFramework>netstandard2.1</TargetFramework>
-    <RootNamespace>com.variflight.dataservice.cs</RootNamespace>
+    <RootNamespace>com.variflight.dataservice.client</RootNamespace>
   </PropertyGroup>
 
   <ItemGroup>
     <PackageReference Include="Google.Protobuf" Version="3.11.2" />
+    <PackageReference Include="Grpc" Version="2.26.0" />
   </ItemGroup>
 </Project>
