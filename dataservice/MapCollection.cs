@@ -6,11 +6,17 @@ using System.Collections.ObjectModel;
 using System.Threading;
 using Google.Protobuf;
 using Google.Protobuf.Reflection;
+using Serilog;
+using Serilog.Core;
 
 namespace com.variflight.dataservice.client
 {
     public class MapCollection<K, V, T> : ObservableCollection<V>, IDictionary<K, V>
     {
+        Logger log = new LoggerConfiguration()
+                .WriteTo.Console()
+                .MinimumLevel.Debug()
+                .CreateLogger();
         private ConcurrentDictionary<K, V> _map = new ConcurrentDictionary<K, V>();
         public MapCollection()
         {
@@ -81,6 +87,12 @@ namespace com.variflight.dataservice.client
             return _map.TryGetValue(key, out value);
         }
 
+        public new void Clear()
+        {
+            this.ClearItems();
+            this._map.Clear();
+        }
+
         IEnumerator<KeyValuePair<K, V>> IEnumerable<KeyValuePair<K, V>>.GetEnumerator()
         {
             return _map.GetEnumerator();
@@ -90,9 +102,11 @@ namespace com.variflight.dataservice.client
         {
             if (full)
             {
+                log.Debug("Create Map " + typeof(V).FullName + ":");
                 IDictionary dic = (IDictionary)field.Accessor.GetValue(message);
                 foreach (var key in dic.Keys)
                 {
+                    log.Debug("\tAdd key " + key);
                     if (typeof(IMessage).IsAssignableFrom(typeof(T)))
                     {
                         var v = Activator.CreateInstance<V>();
@@ -107,23 +121,30 @@ namespace com.variflight.dataservice.client
             }
             else
             {
+                log.Debug("Update Map " + typeof(V).Name);
                 IDictionary dic = (IDictionary)field.Accessor.GetValue(message);
                 if (typeof(K) == typeof(string))
                 {
+                    // 删除
+                    foreach(var item in p.MapStringRemoved)
+                    {
+                        log.Debug("\tDelete key " + item.Key);
+                        this.Remove((K)(object)item.Key);
+                    }
+
                     foreach (var item in p.MapString)
                     {
-                        if (item.Value == null)
+                        if (item.Value.FieldTags == null || item.Value.ToByteArray().Length == 0)
                         {
-                            this.Remove((K)(object)item.Key);
-                        }
-                        else if (item.Value.FieldTags == null)
-                        {
+                            var x = item.Value.ToByteString();
+                            log.Debug("\tAdd key " + item.Key);
                             var v = Activator.CreateInstance<V>();
                             ((DAO)v).MergeFromMessage(dic[item.Key] as IMessage, true, null);
                             this.Add((K)(object)item.Key, v);
                         }
                         else
                         {
+                            log.Debug("\tUpdate key " + item.Key);
                             V currentItem;
                             this.TryGetValue((K)(object)item.Key, out currentItem);
                             ((DAO)currentItem).MergeFromMessage(dic[item.Key] as IMessage, false, item.Value);
@@ -132,20 +153,25 @@ namespace com.variflight.dataservice.client
                 }
                 else if (typeof(K) == typeof(Int32))
                 {
+                    // 删除
+                    foreach (var item in p.MapInt32Removed)
+                    {
+                        log.Debug("\tDelete key " + item.Key);
+                        this.Remove((K)(object)item.Key);
+                    }
+
                     foreach (var item in p.MapInt32)
                     {
-                        if (item.Value == null)
+                        if (item.Value.FieldTags == null || item.Value.ToByteArray().Length == 0)
                         {
-                            this.Remove((K)(object)item.Key);
-                        }
-                        else if (item.Value.FieldTags == null)
-                        {
+                            log.Debug("\tAdd key " + item.Key);
                             var v = Activator.CreateInstance<V>();
                             ((DAO)v).MergeFromMessage(dic[item.Key] as IMessage, true, null);
                             this.Add((K)(object)item.Key, v);
                         }
                         else
                         {
+                            log.Debug("\tUpdate key " + item.Key);
                             V currentItem;
                             this.TryGetValue((K)(object)item.Key, out currentItem);
                             ((DAO)currentItem).MergeFromMessage(dic[item.Key] as IMessage, false, item.Value);
@@ -154,20 +180,25 @@ namespace com.variflight.dataservice.client
                 }
                 else if (typeof(K) == typeof(Int64))
                 {
+                    // 删除
+                    foreach (var item in p.MapInt64Removed)
+                    {
+                        log.Debug("\tDelete key " + item.Key);
+                        this.Remove((K)(object)item.Key);
+                    }
+
                     foreach (var item in p.MapInt64)
                     {
-                        if (item.Value == null)
+                        if (item.Value.FieldTags == null || item.Value.ToByteArray().Length == 0)
                         {
-                            this.Remove((K)(object)item.Key);
-                        }
-                        else if (item.Value.FieldTags == null)
-                        {
+                            log.Debug("\tAdd key " + item.Key);
                             var v = Activator.CreateInstance<V>();
                             ((DAO)v).MergeFromMessage(dic[item.Key] as IMessage, true, null);
                             this.Add((K)(object)item.Key, v);
                         }
                         else
                         {
+                            log.Debug("\tUpdate key " + item.Key);
                             V currentItem;
                             this.TryGetValue((K)(object)item.Key, out currentItem);
                             ((DAO)currentItem).MergeFromMessage(dic[item.Key] as IMessage, false, item.Value);
@@ -176,20 +207,24 @@ namespace com.variflight.dataservice.client
                 }
                 else if (typeof(K) == typeof(bool))
                 {
+                    // 删除
+                    foreach (var item in p.MapBoolRemoved)
+                    {
+                        log.Debug("\tDelete key " + item.Key);
+                        this.Remove((K)(object)item.Key);
+                    }
                     foreach (var item in p.MapBool)
                     {
-                        if (item.Value == null)
+                        if (item.Value.FieldTags == null || item.Value.ToByteArray().Length == 0)
                         {
-                            this.Remove((K)(object)item.Key);
-                        }
-                        else if (item.Value.FieldTags == null)
-                        {
+                            log.Debug("\tAdd key " + item.Key);
                             var v = Activator.CreateInstance<V>();
                             ((DAO)v).MergeFromMessage(dic[item.Key] as IMessage, true, null);
                             this.Add((K)(object)item.Key, v);
                         }
                         else
                         {
+                            log.Debug("\tUpdate key " + item.Key);
                             V currentItem;
                             this.TryGetValue((K)(object)item.Key, out currentItem);
                             ((DAO)currentItem).MergeFromMessage(dic[item.Key] as IMessage, false, item.Value);

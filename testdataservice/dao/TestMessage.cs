@@ -1,10 +1,10 @@
 using System;
 using System.ComponentModel;
 using System.Collections.ObjectModel;
+using com.variflight.dataservice.client;
 using com.variflight.dataservice;
 using Google.Protobuf.WellKnownTypes;
 using Google.Protobuf;
-using com.variflight.dataservice.client;
 
 /*
  *
@@ -63,7 +63,7 @@ namespace Com.Variflight.Dataservice.Test.dao
         ///
         ///
         ///</summary>
-        public MapCollection<string, Com.Variflight.Dataservice.Test.dao.student, Com.Variflight.Dataservice.Test.student> ms {get; set;} = new MapCollection<string, Com.Variflight.Dataservice.Test.dao.student, Com.Variflight.Dataservice.Test.student>();
+        public MapCollection<Int32, Com.Variflight.Dataservice.Test.dao.student, Com.Variflight.Dataservice.Test.student> ms {get; set;} = new MapCollection<Int32, Com.Variflight.Dataservice.Test.dao.student, Com.Variflight.Dataservice.Test.student>();
         ///<summary>
         ///
         ///
@@ -84,9 +84,11 @@ namespace Com.Variflight.Dataservice.Test.dao
             for (var idx = 0; idx < Com.Variflight.Dataservice.Test.student.Descriptor.Fields.InFieldNumberOrder().Count; idx++)
             {
                 var field = Com.Variflight.Dataservice.Test.student.Descriptor.Fields.InFieldNumberOrder()[idx];
-                var isCreate = cm != null && cm.FieldTags.ToByteArray()[(int)Math.Floor(idx / 4.0)] << ((idx % 4) * 2) == (int)ChangeType.Created;
-                var isDelete = cm != null && cm.FieldTags.ToByteArray()[(int)Math.Floor(idx / 4.0)] << ((idx % 4) * 2) == (int)ChangeType.Deleted;
-                var isUpdate = cm != null && (cm.FieldTags.ToByteArray()[(int)Math.Floor(idx / 4.0)] << ((idx % 4) * 2) == (int)ChangeType.Updated);
+                
+                var isCreate = cm != null && (cm.FieldTags.ToByteArray()[(int)Math.Floor(idx / 4.0)] << ((idx % 4) * 2) & 0b11000000) == (int)ChangeType.Created;
+                var isDelete = cm != null && (cm.FieldTags.ToByteArray()[(int)Math.Floor(idx / 4.0)] << ((idx % 4) * 2) & 0b11000000) == (int)ChangeType.Deleted;
+                var isUpdate = cm != null && (cm.FieldTags.ToByteArray()[(int)Math.Floor(idx / 4.0)] << ((idx % 4) * 2) & 0b11000000) == (int)ChangeType.Updated;
+
                 if (full)
                 {
                     isCreate = true;
@@ -205,24 +207,24 @@ namespace Com.Variflight.Dataservice.Test.dao
                     }
                     continue;
                 }
-                ChangeDesc change = null;
-                if (cm != null && cm.ChangeTags != null && !cm.ChangeTags.IsEmpty)
-                {
-                    if ((cm.ChangeTags.ToByteArray()[(int)Math.Floor(idx / 8.0)] >> (7 - (idx % 8)) & 0b00000001) == 0b1)
-                    {
-                        var fieldIndex = 0;
-                        for (var i = 0; i < idx; i++)
-                        {
-                            if ((cm.ChangeTags.ToByteArray()[(int)Math.Floor(i / 8.0)] >> (7 - (i % 8)) & 0b00000001) == 0b1)
-                            {
-                                fieldIndex++;
-                            }
-                        }
-                        change = cm.FieldsChangeDescs[fieldIndex];
-                    }
-                }
                 if (isUpdate)
                 {
+                    ChangeDesc change = null;
+                    if (cm != null && cm.ChangeTags != null)
+                    {
+                        if ((cm.ChangeTags.ToByteArray()[(int)Math.Floor(idx/8.0)] >> (7 - (idx % 8)) & 0b00000001) == 0b1)
+                        {
+                            var fieldIndex = 0;
+                            for (var i = 0; i < idx; i++)
+                            {
+                                if ((cm.ChangeTags.ToByteArray()[(int)Math.Floor(i / 8.0)] >> (7 - (i % 8)) & 0b00000001) == 0b1)
+                                {
+                                    fieldIndex++;
+                                }
+                            }
+                            change = cm.FieldsChangeDescs[fieldIndex];
+                        }
+                    }
                     if (field.FieldNumber == 1)
                     {
                         this.id = (Int32)field.Accessor.GetValue(message);
@@ -237,7 +239,6 @@ namespace Com.Variflight.Dataservice.Test.dao
                     }
                     if (field.FieldNumber == 4)
                     {
-                        this.tags.Clear();
                         this.tags.MergeFromMessage(message, field, full, change);
                     }
                     if (field.FieldNumber == 5)
@@ -250,7 +251,6 @@ namespace Com.Variflight.Dataservice.Test.dao
                     }
                     if (field.FieldNumber == 7)
                     {
-                        this.tags2.Clear();
                         this.tags2.MergeFromMessage(message, field, full, change);
                     }
                     if (field.FieldNumber == 100)
@@ -260,7 +260,14 @@ namespace Com.Variflight.Dataservice.Test.dao
                         {
                             temp = new Com.Variflight.Dataservice.Test.dao.student();
                         }
-                        temp.MergeFromMessage(field.Accessor.GetValue(message) as Com.Variflight.Dataservice.Test.student, full, change);
+                        if (message == null || (field.Accessor.GetValue(message) != null && field.Accessor.GetValue(message) is Com.Variflight.Dataservice.Test.student))
+                        {
+                            temp.MergeFromMessage(null, full, change);
+                        }
+                        else
+                        {
+                            temp.MergeFromMessage(field.Accessor.GetValue(message) as Com.Variflight.Dataservice.Test.student, full, change);
+                        }
                         if (this.s != temp)
                         {
                             this.s = temp;
@@ -268,15 +275,16 @@ namespace Com.Variflight.Dataservice.Test.dao
                     }
                     if (field.FieldNumber == 1001)
                     {
-                        this.ms.Clear();
                         this.ms.MergeFromMessage(message, field, full, change);
                     }
                     if (field.FieldNumber == 10009)
                     {
+                        this.rs.Clear();
                         this.rs.MergeFromMessage(message, field, true, null);
                     }
                     if (field.FieldNumber == 10)
                     {
+                        this.ri.Clear();
                         this.ri.MergeFromMessage(message, field, true, null);
                     }
                     continue;
@@ -321,25 +329,11 @@ namespace Com.Variflight.Dataservice.Test.dao
             for (var idx = 0; idx < Com.Variflight.Dataservice.Test.exam.Descriptor.Fields.InFieldNumberOrder().Count; idx++)
             {
                 var field = Com.Variflight.Dataservice.Test.exam.Descriptor.Fields.InFieldNumberOrder()[idx];
-                var isCreate = cm != null && cm.FieldTags.ToByteArray()[(int)Math.Floor(idx / 4.0)] << ((idx % 4) * 2) == (int)ChangeType.Created;
-                var isDelete = cm != null && cm.FieldTags.ToByteArray()[(int)Math.Floor(idx / 4.0)] << ((idx % 4) * 2) == (int)ChangeType.Deleted;
-                var isUpdate = cm != null && (cm.FieldTags.ToByteArray()[(int)Math.Floor(idx / 4.0)] << ((idx % 4) * 2) == (int)ChangeType.Updated);
-                ChangeDesc change = null;
-                if (cm != null && cm.ChangeTags != null)
-                {
-                    if ((cm.ChangeTags.ToByteArray()[(int)Math.Floor(idx/8.0)] >> (7 - (idx % 8)) & 0b00000001) == 0b1)
-                    {
-                        var fieldIndex = 0;
-                        for (var i = 0; i < idx; i++)
-                        {
-                            if ((cm.ChangeTags.ToByteArray()[(int)Math.Floor(i / 8.0)] >> (7 - (i % 8)) & 0b00000001) == 0b1)
-                            {
-                                fieldIndex++;
-                            }
-                        }
-                        change = cm.FieldsChangeDescs[fieldIndex];
-                    }
-                }
+                
+                var isCreate = cm != null && (cm.FieldTags.ToByteArray()[(int)Math.Floor(idx / 4.0)] << ((idx % 4) * 2) & 0b11000000) == (int)ChangeType.Created;
+                var isDelete = cm != null && (cm.FieldTags.ToByteArray()[(int)Math.Floor(idx / 4.0)] << ((idx % 4) * 2) & 0b11000000) == (int)ChangeType.Deleted;
+                var isUpdate = cm != null && (cm.FieldTags.ToByteArray()[(int)Math.Floor(idx / 4.0)] << ((idx % 4) * 2) & 0b11000000) == (int)ChangeType.Updated;
+
                 if (full)
                 {
                     isCreate = true;
@@ -397,6 +391,22 @@ namespace Com.Variflight.Dataservice.Test.dao
                 }
                 if (isUpdate)
                 {
+                    ChangeDesc change = null;
+                    if (cm != null && cm.ChangeTags != null)
+                    {
+                        if ((cm.ChangeTags.ToByteArray()[(int)Math.Floor(idx/8.0)] >> (7 - (idx % 8)) & 0b00000001) == 0b1)
+                        {
+                            var fieldIndex = 0;
+                            for (var i = 0; i < idx; i++)
+                            {
+                                if ((cm.ChangeTags.ToByteArray()[(int)Math.Floor(i / 8.0)] >> (7 - (i % 8)) & 0b00000001) == 0b1)
+                                {
+                                    fieldIndex++;
+                                }
+                            }
+                            change = cm.FieldsChangeDescs[fieldIndex];
+                        }
+                    }
                     if (field.FieldNumber == 1)
                     {
                         this.id = (Int32)field.Accessor.GetValue(message);
@@ -445,25 +455,11 @@ namespace Com.Variflight.Dataservice.Test.dao
             for (var idx = 0; idx < Com.Variflight.Dataservice.Test.StudentScore.Descriptor.Fields.InFieldNumberOrder().Count; idx++)
             {
                 var field = Com.Variflight.Dataservice.Test.StudentScore.Descriptor.Fields.InFieldNumberOrder()[idx];
-                var isCreate = cm != null && cm.FieldTags.ToByteArray()[(int)Math.Floor(idx / 4.0)] << ((idx % 4) * 2) == (int)ChangeType.Created;
-                var isDelete = cm != null && cm.FieldTags.ToByteArray()[(int)Math.Floor(idx / 4.0)] << ((idx % 4) * 2) == (int)ChangeType.Deleted;
-                var isUpdate = cm != null && (cm.FieldTags.ToByteArray()[(int)Math.Floor(idx / 4.0)] << ((idx % 4) * 2) == (int)ChangeType.Updated);
-                ChangeDesc change = null;
-                if (cm != null && cm.ChangeTags != null)
-                {
-                    if ((cm.ChangeTags.ToByteArray()[(int)Math.Floor(idx/8.0)] >> (7 - (idx % 8)) & 0b00000001) == 0b1)
-                    {
-                        var fieldIndex = 0;
-                        for (var i = 0; i < idx; i++)
-                        {
-                            if ((cm.ChangeTags.ToByteArray()[(int)Math.Floor(i / 8.0)] >> (7 - (i % 8)) & 0b00000001) == 0b1)
-                            {
-                                fieldIndex++;
-                            }
-                        }
-                        change = cm.FieldsChangeDescs[fieldIndex];
-                    }
-                }
+                
+                var isCreate = cm != null && (cm.FieldTags.ToByteArray()[(int)Math.Floor(idx / 4.0)] << ((idx % 4) * 2) & 0b11000000) == (int)ChangeType.Created;
+                var isDelete = cm != null && (cm.FieldTags.ToByteArray()[(int)Math.Floor(idx / 4.0)] << ((idx % 4) * 2) & 0b11000000) == (int)ChangeType.Deleted;
+                var isUpdate = cm != null && (cm.FieldTags.ToByteArray()[(int)Math.Floor(idx / 4.0)] << ((idx % 4) * 2) & 0b11000000) == (int)ChangeType.Updated;
+
                 if (full)
                 {
                     isCreate = true;
@@ -508,6 +504,22 @@ namespace Com.Variflight.Dataservice.Test.dao
                 }
                 if (isUpdate)
                 {
+                    ChangeDesc change = null;
+                    if (cm != null && cm.ChangeTags != null)
+                    {
+                        if ((cm.ChangeTags.ToByteArray()[(int)Math.Floor(idx/8.0)] >> (7 - (idx % 8)) & 0b00000001) == 0b1)
+                        {
+                            var fieldIndex = 0;
+                            for (var i = 0; i < idx; i++)
+                            {
+                                if ((cm.ChangeTags.ToByteArray()[(int)Math.Floor(i / 8.0)] >> (7 - (i % 8)) & 0b00000001) == 0b1)
+                                {
+                                    fieldIndex++;
+                                }
+                            }
+                            change = cm.FieldsChangeDescs[fieldIndex];
+                        }
+                    }
                     if (field.FieldNumber == 1)
                     {
                         var temp = this.s;
@@ -515,7 +527,14 @@ namespace Com.Variflight.Dataservice.Test.dao
                         {
                             temp = new Com.Variflight.Dataservice.Test.dao.student();
                         }
-                        temp.MergeFromMessage(field.Accessor.GetValue(message) as Com.Variflight.Dataservice.Test.student, full, change);
+                        if (message == null || (field.Accessor.GetValue(message) != null && field.Accessor.GetValue(message) is Com.Variflight.Dataservice.Test.student))
+                        {
+                            temp.MergeFromMessage(null, full, change);
+                        }
+                        else
+                        {
+                            temp.MergeFromMessage(field.Accessor.GetValue(message) as Com.Variflight.Dataservice.Test.student, full, change);
+                        }
                         if (this.s != temp)
                         {
                             this.s = temp;
@@ -523,7 +542,6 @@ namespace Com.Variflight.Dataservice.Test.dao
                     }
                     if (field.FieldNumber == 2)
                     {
-                        this.exams.Clear();
                         this.exams.MergeFromMessage(message, field, full, change);
                     }
                     continue;
@@ -553,25 +571,11 @@ namespace Com.Variflight.Dataservice.Test.dao
             for (var idx = 0; idx < Com.Variflight.Dataservice.Test.StudentScoresMap.Descriptor.Fields.InFieldNumberOrder().Count; idx++)
             {
                 var field = Com.Variflight.Dataservice.Test.StudentScoresMap.Descriptor.Fields.InFieldNumberOrder()[idx];
-                var isCreate = cm != null && cm.FieldTags.ToByteArray()[(int)Math.Floor(idx / 4.0)] << ((idx % 4) * 2) == (int)ChangeType.Created;
-                var isDelete = cm != null && cm.FieldTags.ToByteArray()[(int)Math.Floor(idx / 4.0)] << ((idx % 4) * 2) == (int)ChangeType.Deleted;
-                var isUpdate = cm != null && (cm.FieldTags.ToByteArray()[(int)Math.Floor(idx / 4.0)] << ((idx % 4) * 2) == (int)ChangeType.Updated);
-                ChangeDesc change = null;
-                if (cm != null && cm.ChangeTags != null)
-                {
-                    if ((cm.ChangeTags.ToByteArray()[(int)Math.Floor(idx/8.0)] >> (7 - (idx % 8)) & 0b00000001) == 0b1)
-                    {
-                        var fieldIndex = 0;
-                        for (var i = 0; i < idx; i++)
-                        {
-                            if ((cm.ChangeTags.ToByteArray()[(int)Math.Floor(i / 8.0)] >> (7 - (i % 8)) & 0b00000001) == 0b1)
-                            {
-                                fieldIndex++;
-                            }
-                        }
-                        change = cm.FieldsChangeDescs[fieldIndex];
-                    }
-                }
+                
+                var isCreate = cm != null && (cm.FieldTags.ToByteArray()[(int)Math.Floor(idx / 4.0)] << ((idx % 4) * 2) & 0b11000000) == (int)ChangeType.Created;
+                var isDelete = cm != null && (cm.FieldTags.ToByteArray()[(int)Math.Floor(idx / 4.0)] << ((idx % 4) * 2) & 0b11000000) == (int)ChangeType.Deleted;
+                var isUpdate = cm != null && (cm.FieldTags.ToByteArray()[(int)Math.Floor(idx / 4.0)] << ((idx % 4) * 2) & 0b11000000) == (int)ChangeType.Updated;
+
                 if (full)
                 {
                     isCreate = true;
@@ -606,9 +610,24 @@ namespace Com.Variflight.Dataservice.Test.dao
                 }
                 if (isUpdate)
                 {
+                    ChangeDesc change = null;
+                    if (cm != null && cm.ChangeTags != null)
+                    {
+                        if ((cm.ChangeTags.ToByteArray()[(int)Math.Floor(idx/8.0)] >> (7 - (idx % 8)) & 0b00000001) == 0b1)
+                        {
+                            var fieldIndex = 0;
+                            for (var i = 0; i < idx; i++)
+                            {
+                                if ((cm.ChangeTags.ToByteArray()[(int)Math.Floor(i / 8.0)] >> (7 - (i % 8)) & 0b00000001) == 0b1)
+                                {
+                                    fieldIndex++;
+                                }
+                            }
+                            change = cm.FieldsChangeDescs[fieldIndex];
+                        }
+                    }
                     if (field.FieldNumber == 1)
                     {
-                        this.results.Clear();
                         this.results.MergeFromMessage(message, field, full, change);
                     }
                     continue;
