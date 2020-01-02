@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.ComponentModel;
 using System.Collections.ObjectModel;
 using com.variflight.dataservice.client;
@@ -16,75 +16,103 @@ namespace Com.Variflight.Dataservice.Test.dao
     /// 学生
     ///
     ///</summary>
-    public class student : DAO
+    public class student : IDAO
     {
         #region 消息字段
         ///<summary>
         /// 学生ID
         ///
         ///</summary>
-        public Int32 id {get; set;}
+
+        private Int32 _id;
+        public Int32 id { get { return _id; } set { _id = value; invokePropertyChanged("id"); } }
         ///<summary>
         /// 姓名
         ///
         ///</summary>
-        public string name {get; set;}
+
+        private string _name;
+        public string name { get { return _name; } set { _name = value; invokePropertyChanged("name"); } }
         ///<summary>
         ///
         ///
         ///</summary>
-        public Int32 age {get; set;}
+
+        private Int32 _age;
+        public Int32 age { get { return _age; } set { _age = value; invokePropertyChanged("age"); } }
         ///<summary>
         ///
         ///
         ///</summary>
-        public MapCollection<string, string, string> tags {get; set;} = new MapCollection<string, string, string>();
+
+        private MapCollection<string, string, string> _tags = new MapCollection<string, string, string>();
+        public MapCollection<string, string, string> tags { get { return _tags; } set { _tags = value; invokePropertyChanged("tags"); } }
         ///<summary>
         ///
         ///
         ///</summary>
-        public string comment {get; set;}
+
+        private string _comment;
+        public string comment { get { return _comment; } set { _comment = value; invokePropertyChanged("comment"); } }
         ///<summary>
         ///
         ///
         ///</summary>
-        public Int32? ivx {get; set;}
+
+        private Int32? _ivx;
+        public Int32? ivx { get { return _ivx; } set { _ivx = value; invokePropertyChanged("ivx"); } }
         ///<summary>
         ///
         ///
         ///</summary>
-        public MapCollection<string, Int64?, Int64> tags2 {get; set;} = new MapCollection<string, Int64?, Int64>();
+
+        private MapCollection<string, Int64?, Int64> _tags2 = new MapCollection<string, Int64?, Int64>();
+        public MapCollection<string, Int64?, Int64> tags2 { get { return _tags2; } set { _tags2 = value; invokePropertyChanged("tags2"); } }
         ///<summary>
         ///
         ///
         ///</summary>
-        public Com.Variflight.Dataservice.Test.dao.student s {get; set;}
+
+        private Com.Variflight.Dataservice.Test.dao.student _s;
+        public Com.Variflight.Dataservice.Test.dao.student s { get { return _s; } set { _s = value; invokePropertyChanged("s"); } }
         ///<summary>
         ///
         ///
         ///</summary>
-        public MapCollection<Int32, Com.Variflight.Dataservice.Test.dao.student, Com.Variflight.Dataservice.Test.student> ms {get; set;} = new MapCollection<Int32, Com.Variflight.Dataservice.Test.dao.student, Com.Variflight.Dataservice.Test.student>();
+
+        private MapCollection<Int32, Com.Variflight.Dataservice.Test.dao.student, Com.Variflight.Dataservice.Test.student> _ms = new MapCollection<Int32, Com.Variflight.Dataservice.Test.dao.student, Com.Variflight.Dataservice.Test.student>();
+        public MapCollection<Int32, Com.Variflight.Dataservice.Test.dao.student, Com.Variflight.Dataservice.Test.student> ms { get { return _ms; } set { _ms = value; invokePropertyChanged("ms"); } }
         ///<summary>
         ///
         ///
         ///</summary>
-        public ListCollection<Com.Variflight.Dataservice.Test.dao.student, Com.Variflight.Dataservice.Test.student> rs {get; set;} = new ListCollection<Com.Variflight.Dataservice.Test.dao.student, Com.Variflight.Dataservice.Test.student>();
+
+        private ListCollection<Com.Variflight.Dataservice.Test.dao.student, Com.Variflight.Dataservice.Test.student> _rs = new ListCollection<Com.Variflight.Dataservice.Test.dao.student, Com.Variflight.Dataservice.Test.student>();
+        public ListCollection<Com.Variflight.Dataservice.Test.dao.student, Com.Variflight.Dataservice.Test.student> rs { get { return _rs; } set { _rs = value; invokePropertyChanged("rs"); } }
         ///<summary>
         ///
         ///
         ///</summary>
-        public ListCollection<Int64, Int64> ri {get; set;} = new ListCollection<Int64, Int64>();
+
+        private ListCollection<Int64, Int64> _ri = new ListCollection<Int64, Int64>();
+        public ListCollection<Int64, Int64> ri { get { return _ri; } set { _ri = value; invokePropertyChanged("ri"); } }
         #endregion
 
-
+        #region INotifyPropertyChanged
         public event PropertyChangedEventHandler PropertyChanged;
+        private void invokePropertyChanged(String proName)
+        {
+            this.PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(proName));
+        }
+        #endregion
 
+        #region Proto Parse
         public void MergeFromMessage(IMessage message, bool full, ChangeDesc cm)
         {
             for (var idx = 0; idx < Com.Variflight.Dataservice.Test.student.Descriptor.Fields.InFieldNumberOrder().Count; idx++)
             {
                 var field = Com.Variflight.Dataservice.Test.student.Descriptor.Fields.InFieldNumberOrder()[idx];
-                
+
                 var isCreate = cm != null && (cm.FieldTags.ToByteArray()[(int)Math.Floor(idx / 4.0)] << ((idx % 4) * 2) & 0b11000000) == (int)ChangeType.Created;
                 var isDelete = cm != null && (cm.FieldTags.ToByteArray()[(int)Math.Floor(idx / 4.0)] << ((idx % 4) * 2) & 0b11000000) == (int)ChangeType.Deleted;
                 var isUpdate = cm != null && (cm.FieldTags.ToByteArray()[(int)Math.Floor(idx / 4.0)] << ((idx % 4) * 2) & 0b11000000) == (int)ChangeType.Updated;
@@ -187,7 +215,7 @@ namespace Com.Variflight.Dataservice.Test.dao
                     if (field.FieldNumber == 100)
                     {
                         var temp = new Com.Variflight.Dataservice.Test.dao.student();
-                        temp.MergeFromMessage(field.Accessor.GetValue(message) as Com.Variflight.Dataservice.Test.student, full, null);
+                        temp.MergeFromMessage(field.Accessor.GetValue(message) as Com.Variflight.Dataservice.Test.student, true, null);
                         this.s = temp;
                     }
                     if (field.FieldNumber == 1001)
@@ -212,7 +240,7 @@ namespace Com.Variflight.Dataservice.Test.dao
                     ChangeDesc change = null;
                     if (cm != null && cm.ChangeTags != null)
                     {
-                        if ((cm.ChangeTags.ToByteArray()[(int)Math.Floor(idx/8.0)] >> (7 - (idx % 8)) & 0b00000001) == 0b1)
+                        if ((cm.ChangeTags.ToByteArray()[(int)Math.Floor(idx / 8.0)] >> (7 - (idx % 8)) & 0b00000001) == 0b1)
                         {
                             var fieldIndex = 0;
                             for (var i = 0; i < idx; i++)
@@ -260,7 +288,7 @@ namespace Com.Variflight.Dataservice.Test.dao
                         {
                             temp = new Com.Variflight.Dataservice.Test.dao.student();
                         }
-                        if (message == null || (field.Accessor.GetValue(message) != null && field.Accessor.GetValue(message) is Com.Variflight.Dataservice.Test.student))
+                        if (message == null || (field.Accessor.GetValue(message) != null && !(field.Accessor.GetValue(message) is Com.Variflight.Dataservice.Test.student)))
                         {
                             temp.MergeFromMessage(null, full, change);
                         }
@@ -291,45 +319,60 @@ namespace Com.Variflight.Dataservice.Test.dao
                 }
             }
         }
+        #endregion
     }
     ///<summary>
     ///
     ///
     ///</summary>
-    public class exam : DAO
+    public class exam : IDAO
     {
         #region 消息字段
         ///<summary>
         ///
         ///
         ///</summary>
-        public Int32 id {get; set;}
+
+        private Int32 _id;
+        public Int32 id { get { return _id; } set { _id = value; invokePropertyChanged("id"); } }
         ///<summary>
         ///
         ///
         ///</summary>
-        public string cls {get; set;}
+
+        private string _cls;
+        public string cls { get { return _cls; } set { _cls = value; invokePropertyChanged("cls"); } }
         ///<summary>
         ///
         ///
         ///</summary>
-        public Int32 studentid {get; set;}
+
+        private Int32 _studentid;
+        public Int32 studentid { get { return _studentid; } set { _studentid = value; invokePropertyChanged("studentid"); } }
         ///<summary>
         ///
         ///
         ///</summary>
-        public Int32 score {get; set;}
+
+        private Int32 _score;
+        public Int32 score { get { return _score; } set { _score = value; invokePropertyChanged("score"); } }
         #endregion
 
-
+        #region INotifyPropertyChanged
         public event PropertyChangedEventHandler PropertyChanged;
+        private void invokePropertyChanged(String proName)
+        {
+            this.PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(proName));
+        }
+        #endregion
 
+        #region Proto Parse
         public void MergeFromMessage(IMessage message, bool full, ChangeDesc cm)
         {
             for (var idx = 0; idx < Com.Variflight.Dataservice.Test.exam.Descriptor.Fields.InFieldNumberOrder().Count; idx++)
             {
                 var field = Com.Variflight.Dataservice.Test.exam.Descriptor.Fields.InFieldNumberOrder()[idx];
-                
+
                 var isCreate = cm != null && (cm.FieldTags.ToByteArray()[(int)Math.Floor(idx / 4.0)] << ((idx % 4) * 2) & 0b11000000) == (int)ChangeType.Created;
                 var isDelete = cm != null && (cm.FieldTags.ToByteArray()[(int)Math.Floor(idx / 4.0)] << ((idx % 4) * 2) & 0b11000000) == (int)ChangeType.Deleted;
                 var isUpdate = cm != null && (cm.FieldTags.ToByteArray()[(int)Math.Floor(idx / 4.0)] << ((idx % 4) * 2) & 0b11000000) == (int)ChangeType.Updated;
@@ -394,7 +437,7 @@ namespace Com.Variflight.Dataservice.Test.dao
                     ChangeDesc change = null;
                     if (cm != null && cm.ChangeTags != null)
                     {
-                        if ((cm.ChangeTags.ToByteArray()[(int)Math.Floor(idx/8.0)] >> (7 - (idx % 8)) & 0b00000001) == 0b1)
+                        if ((cm.ChangeTags.ToByteArray()[(int)Math.Floor(idx / 8.0)] >> (7 - (idx % 8)) & 0b00000001) == 0b1)
                         {
                             var fieldIndex = 0;
                             for (var i = 0; i < idx; i++)
@@ -427,35 +470,46 @@ namespace Com.Variflight.Dataservice.Test.dao
                 }
             }
         }
+        #endregion
     }
     ///<summary>
     ///
     ///
     ///</summary>
-    public class StudentScore : DAO
+    public class StudentScore : IDAO
     {
         #region 消息字段
         ///<summary>
         ///
         ///
         ///</summary>
-        public Com.Variflight.Dataservice.Test.dao.student s {get; set;}
+
+        private Com.Variflight.Dataservice.Test.dao.student _s;
+        public Com.Variflight.Dataservice.Test.dao.student s { get { return _s; } set { _s = value; invokePropertyChanged("s"); } }
         ///<summary>
         ///
         ///
         ///</summary>
-        public MapCollection<string, Com.Variflight.Dataservice.Test.dao.exam, Com.Variflight.Dataservice.Test.exam> exams {get; set;} = new MapCollection<string, Com.Variflight.Dataservice.Test.dao.exam, Com.Variflight.Dataservice.Test.exam>();
+
+        private MapCollection<string, Com.Variflight.Dataservice.Test.dao.exam, Com.Variflight.Dataservice.Test.exam> _exams = new MapCollection<string, Com.Variflight.Dataservice.Test.dao.exam, Com.Variflight.Dataservice.Test.exam>();
+        public MapCollection<string, Com.Variflight.Dataservice.Test.dao.exam, Com.Variflight.Dataservice.Test.exam> exams { get { return _exams; } set { _exams = value; invokePropertyChanged("exams"); } }
         #endregion
 
-
+        #region INotifyPropertyChanged
         public event PropertyChangedEventHandler PropertyChanged;
+        private void invokePropertyChanged(String proName)
+        {
+            this.PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(proName));
+        }
+        #endregion
 
+        #region Proto Parse
         public void MergeFromMessage(IMessage message, bool full, ChangeDesc cm)
         {
             for (var idx = 0; idx < Com.Variflight.Dataservice.Test.StudentScore.Descriptor.Fields.InFieldNumberOrder().Count; idx++)
             {
                 var field = Com.Variflight.Dataservice.Test.StudentScore.Descriptor.Fields.InFieldNumberOrder()[idx];
-                
+
                 var isCreate = cm != null && (cm.FieldTags.ToByteArray()[(int)Math.Floor(idx / 4.0)] << ((idx % 4) * 2) & 0b11000000) == (int)ChangeType.Created;
                 var isDelete = cm != null && (cm.FieldTags.ToByteArray()[(int)Math.Floor(idx / 4.0)] << ((idx % 4) * 2) & 0b11000000) == (int)ChangeType.Deleted;
                 var isUpdate = cm != null && (cm.FieldTags.ToByteArray()[(int)Math.Floor(idx / 4.0)] << ((idx % 4) * 2) & 0b11000000) == (int)ChangeType.Updated;
@@ -492,7 +546,7 @@ namespace Com.Variflight.Dataservice.Test.dao
                     if (field.FieldNumber == 1)
                     {
                         var temp = new Com.Variflight.Dataservice.Test.dao.student();
-                        temp.MergeFromMessage(field.Accessor.GetValue(message) as Com.Variflight.Dataservice.Test.student, full, null);
+                        temp.MergeFromMessage(field.Accessor.GetValue(message) as Com.Variflight.Dataservice.Test.student, true, null);
                         this.s = temp;
                     }
                     if (field.FieldNumber == 2)
@@ -507,7 +561,7 @@ namespace Com.Variflight.Dataservice.Test.dao
                     ChangeDesc change = null;
                     if (cm != null && cm.ChangeTags != null)
                     {
-                        if ((cm.ChangeTags.ToByteArray()[(int)Math.Floor(idx/8.0)] >> (7 - (idx % 8)) & 0b00000001) == 0b1)
+                        if ((cm.ChangeTags.ToByteArray()[(int)Math.Floor(idx / 8.0)] >> (7 - (idx % 8)) & 0b00000001) == 0b1)
                         {
                             var fieldIndex = 0;
                             for (var i = 0; i < idx; i++)
@@ -527,7 +581,7 @@ namespace Com.Variflight.Dataservice.Test.dao
                         {
                             temp = new Com.Variflight.Dataservice.Test.dao.student();
                         }
-                        if (message == null || (field.Accessor.GetValue(message) != null && field.Accessor.GetValue(message) is Com.Variflight.Dataservice.Test.student))
+                        if (message == null || (field.Accessor.GetValue(message) != null && !(field.Accessor.GetValue(message) is Com.Variflight.Dataservice.Test.student)))
                         {
                             temp.MergeFromMessage(null, full, change);
                         }
@@ -548,30 +602,39 @@ namespace Com.Variflight.Dataservice.Test.dao
                 }
             }
         }
+        #endregion
     }
     ///<summary>
     ///
     ///
     ///</summary>
-    public class StudentScoresMap : DAO
+    public class StudentScoresMap : IDAO
     {
         #region 消息字段
         ///<summary>
         ///
         ///
         ///</summary>
-        public MapCollection<Int32, Com.Variflight.Dataservice.Test.dao.StudentScore, Com.Variflight.Dataservice.Test.StudentScore> results {get; set;} = new MapCollection<Int32, Com.Variflight.Dataservice.Test.dao.StudentScore, Com.Variflight.Dataservice.Test.StudentScore>();
+
+        private MapCollection<Int32, Com.Variflight.Dataservice.Test.dao.StudentScore, Com.Variflight.Dataservice.Test.StudentScore> _results = new MapCollection<Int32, Com.Variflight.Dataservice.Test.dao.StudentScore, Com.Variflight.Dataservice.Test.StudentScore>();
+        public MapCollection<Int32, Com.Variflight.Dataservice.Test.dao.StudentScore, Com.Variflight.Dataservice.Test.StudentScore> results { get { return _results; } set { _results = value; invokePropertyChanged("results"); } }
         #endregion
 
-
+        #region INotifyPropertyChanged
         public event PropertyChangedEventHandler PropertyChanged;
+        private void invokePropertyChanged(String proName)
+        {
+            this.PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(proName));
+        }
+        #endregion
 
+        #region Proto Parse
         public void MergeFromMessage(IMessage message, bool full, ChangeDesc cm)
         {
             for (var idx = 0; idx < Com.Variflight.Dataservice.Test.StudentScoresMap.Descriptor.Fields.InFieldNumberOrder().Count; idx++)
             {
                 var field = Com.Variflight.Dataservice.Test.StudentScoresMap.Descriptor.Fields.InFieldNumberOrder()[idx];
-                
+
                 var isCreate = cm != null && (cm.FieldTags.ToByteArray()[(int)Math.Floor(idx / 4.0)] << ((idx % 4) * 2) & 0b11000000) == (int)ChangeType.Created;
                 var isDelete = cm != null && (cm.FieldTags.ToByteArray()[(int)Math.Floor(idx / 4.0)] << ((idx % 4) * 2) & 0b11000000) == (int)ChangeType.Deleted;
                 var isUpdate = cm != null && (cm.FieldTags.ToByteArray()[(int)Math.Floor(idx / 4.0)] << ((idx % 4) * 2) & 0b11000000) == (int)ChangeType.Updated;
@@ -613,7 +676,7 @@ namespace Com.Variflight.Dataservice.Test.dao
                     ChangeDesc change = null;
                     if (cm != null && cm.ChangeTags != null)
                     {
-                        if ((cm.ChangeTags.ToByteArray()[(int)Math.Floor(idx/8.0)] >> (7 - (idx % 8)) & 0b00000001) == 0b1)
+                        if ((cm.ChangeTags.ToByteArray()[(int)Math.Floor(idx / 8.0)] >> (7 - (idx % 8)) & 0b00000001) == 0b1)
                         {
                             var fieldIndex = 0;
                             for (var i = 0; i < idx; i++)
@@ -634,5 +697,6 @@ namespace Com.Variflight.Dataservice.Test.dao
                 }
             }
         }
+        #endregion
     }
 }

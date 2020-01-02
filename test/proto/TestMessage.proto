@@ -1,4 +1,4 @@
-syntax = "proto3";
+﻿syntax = "proto3";
 
 package com.variflight.dataservice.test;
 
@@ -31,7 +31,7 @@ message exam{
 
 message StudentScore{
     student s = 1;
-    map<string, exam> exams = 2;
+    map<string,exam> exams = 2;
 }
 
 message StudentScoresMap{

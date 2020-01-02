@@ -21,7 +21,7 @@ namespace com.variflight.dataservice.client
                 {
                     if (typeof(IMessage).IsAssignableFrom(typeof(T)))
                     {
-                        var dao = Activator.CreateInstance<V>() as DAO;
+                        var dao = Activator.CreateInstance<V>() as IDAO;
                         dao.MergeFromMessage(item as IMessage, full, null);
                         this.Add((V)dao);
                     }

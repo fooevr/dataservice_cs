@@ -25,7 +25,7 @@ namespace com.variflight.dataservice.client
             D defaultDao = null,
             Int64 defaultTs = 0,
             int interval = 3000,
-            Action<Exception> exAction = null) where R : class, IMessage where D : class, DAO
+            Action<Exception> exAction = null) where R : class, IMessage where D : class, IDAO
         {
             if (cancelTokenSource == null)
             {
@@ -50,7 +50,6 @@ namespace com.variflight.dataservice.client
                     }                    
                     try
                     {
-                        Console.Clear();
                         var meta = new Metadata();
                         meta.Add("ts", ts.ToString());
                         AsyncUnaryCall<R> resp = func.Invoke(parameter, meta, null, cancelTokenSource.Token);
@@ -105,32 +104,32 @@ namespace com.variflight.dataservice.client
                         {
                             if (ctEntry.ValueBytes[0] == (byte)ChangeType.Created)
                             {
-                                log.Debug("Create Change");
+                                log.Verbose("Create Change");
                                 dao = Activator.CreateInstance<D>();
                                 dao.MergeFromMessage(result, true, cd);
                                 updateDAOAction(dao);
                             }
                             else if (ctEntry.ValueBytes[0] == (byte)ChangeType.Updated)
                             {
-                                log.Debug("Update Change");
+                                log.Verbose("Update Change");
                                 dao.MergeFromMessage(result, false, cd);
                             }
                             else if (ctEntry.ValueBytes[0] == (byte)ChangeType.Deleted)
                             {
-                                log.Debug("Delete Change");
+                                log.Verbose("Delete Change");
                                 dao = null;
                                 updateDAOAction(null);
                             }
                         }
                         if (cd != null)
                         {
-                            Console.WriteLine(cd.ToString() + ": " + cd.ToByteArray().Length);
+                            log.Verbose(cd.ToString() + ": " + cd.ToByteArray().Length + "," + result.ToByteArray().Length);
                         }
                         else
                         {
-                            Console.WriteLine(result.ToString());
+                            log.Verbose(result.ToString());
                         }
-                        Console.WriteLine(JsonConvert.SerializeObject(dao, Formatting.Indented));
+                        log.Verbose(JsonConvert.SerializeObject(dao, Formatting.Indented));
                     }
                     catch (Exception ex)
                     {
@@ -138,7 +137,7 @@ namespace com.variflight.dataservice.client
                         {
                             exAction(ex);
                         }
-                        Console.WriteLine(ex);
+                        log.Fatal(ex, "loop pull");
                     }
                     finally
                     {

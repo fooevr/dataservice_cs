@@ -3,100 +3,65 @@ using System.Collections;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
+using System.Collections.Specialized;
 using System.Threading;
+using System.Windows.Data;
+using System.Windows.Threading;
 using Google.Protobuf;
 using Google.Protobuf.Reflection;
 using Serilog;
 using Serilog.Core;
+using System.Linq;
 
 namespace com.variflight.dataservice.client
 {
-    public class MapCollection<K, V, T> : ObservableCollection<V>, IDictionary<K, V>
+    public class MapCollection<K, V, T> : ObservableCollection<V>, IDictionary<K, V>, IEnumerable<V>
     {
+        public override event NotifyCollectionChangedEventHandler CollectionChanged;
         Logger log = new LoggerConfiguration()
                 .WriteTo.Console()
                 .MinimumLevel.Debug()
                 .CreateLogger();
+        private readonly object locker = new object();
         private ConcurrentDictionary<K, V> _map = new ConcurrentDictionary<K, V>();
+
+        public ICollection<K> Keys => this._map.Keys;
+
+        public ICollection<V> Values => this._map.Values;
+
+        public bool IsReadOnly => true;
+
+        public V this[K key] { get => _map[key]; set => _map[key] = value; }
+
         public MapCollection()
         {
+            BindingOperations.EnableCollectionSynchronization(this, locker);
         }
 
-        public V this[K key]
+        protected override void OnCollectionChanged(NotifyCollectionChangedEventArgs e)
         {
-            get => _map[key];
-            set => _map[key] = value;
-        }
-
-        public ICollection<K> Keys => _map.Keys;
-
-        public ICollection<V> Values => _map.Values;
-
-        public bool IsReadOnly => false;
-
-        public void Add(K key, V value)
-        {
-            V v;
-            if (this._map.TryGetValue(key, out v))
+            if(this.CollectionChanged == null)
             {
-                this._map.TryUpdate(key, value, v);
-                this.Remove(v);
-                this.Add(value);
+                return;
             }
-            else
+            foreach(NotifyCollectionChangedEventHandler item in this.CollectionChanged.GetInvocationList())
             {
-                this._map.TryAdd(key, value);
-                this.Add(value);
+                var disObj = item.Target as DispatcherObject;
+                if(disObj != null)
+                {
+                    if(disObj.Dispatcher != null)
+                    {
+                        if (!disObj.Dispatcher.CheckAccess())
+                        {
+                            disObj.Dispatcher.BeginInvoke((Action)(() => {
+                                item.Invoke(this, e);
+                            }), DispatcherPriority.DataBind);
+                        }
+                    }
+                }
             }
         }
 
-        public void Add(KeyValuePair<K, V> item)
-        {
-            this.Add(item.Key, item.Value);
-        }
-
-        public bool Contains(KeyValuePair<K, V> item)
-        {
-            return _map.ContainsKey(item.Key);
-        }
-
-        public bool ContainsKey(K key)
-        {
-            return _map.ContainsKey(key);
-        }
-
-        public void CopyTo(KeyValuePair<K, V>[] array, int arrayIndex)
-        {
-            throw new NotImplementedException();
-        }
-
-        public bool Remove(K key)
-        {
-            V v;
-            return _map.TryRemove(key, out v);
-        }
-
-        public bool Remove(KeyValuePair<K, V> item)
-        {
-            V v;
-            return _map.TryRemove(item.Key, out v);
-        }
-
-        public bool TryGetValue(K key, out V value)
-        {
-            return _map.TryGetValue(key, out value);
-        }
-
-        public new void Clear()
-        {
-            this.ClearItems();
-            this._map.Clear();
-        }
-
-        IEnumerator<KeyValuePair<K, V>> IEnumerable<KeyValuePair<K, V>>.GetEnumerator()
-        {
-            return _map.GetEnumerator();
-        }
 
         public void MergeFromMessage(IMessage message, FieldDescriptor field, bool full, ChangeDesc p)
         {
@@ -110,12 +75,14 @@ namespace com.variflight.dataservice.client
                     if (typeof(IMessage).IsAssignableFrom(typeof(T)))
                     {
                         var v = Activator.CreateInstance<V>();
-                        ((DAO)v).MergeFromMessage(dic[key] as IMessage, true, null);
-                        this.Add((K)key, v);
+                        ((IDAO)v).MergeFromMessage(dic[key] as IMessage, true, null);
+                        this._map.TryAdd((K)key, v);
+                        this.InsertItem(this.Count, v);
                     }
                     else
                     {
-                        this.Add((K)key, (V)dic[key]);
+                        this._map.TryAdd((K)key, (V)dic[key]);
+                        this.InsertItem(this.Count, (V)dic[key]);
                     }
                 }
             }
@@ -129,25 +96,27 @@ namespace com.variflight.dataservice.client
                     foreach(var item in p.MapStringRemoved)
                     {
                         log.Debug("\tDelete key " + item.Key);
-                        this.Remove((K)(object)item.Key);
+                        V oldV;
+                        this._map.TryRemove((K)(object)item.Key, out oldV);
+                        this.RemoveItem(this.IndexOf(oldV));
                     }
 
                     foreach (var item in p.MapString)
                     {
                         if (item.Value.FieldTags == null || item.Value.ToByteArray().Length == 0)
                         {
-                            var x = item.Value.ToByteString();
                             log.Debug("\tAdd key " + item.Key);
                             var v = Activator.CreateInstance<V>();
-                            ((DAO)v).MergeFromMessage(dic[item.Key] as IMessage, true, null);
-                            this.Add((K)(object)item.Key, v);
+                            ((IDAO)v).MergeFromMessage(dic[item.Key] as IMessage, true, null);
+                            this._map[(K)(object)item.Key] = v;
+                            this.InsertItem(this.Count, v);
                         }
                         else
                         {
                             log.Debug("\tUpdate key " + item.Key);
                             V currentItem;
                             this.TryGetValue((K)(object)item.Key, out currentItem);
-                            ((DAO)currentItem).MergeFromMessage(dic[item.Key] as IMessage, false, item.Value);
+                            ((IDAO)currentItem).MergeFromMessage(dic[item.Key] as IMessage, false, item.Value);
                         }
                     }
                 }
@@ -157,7 +126,9 @@ namespace com.variflight.dataservice.client
                     foreach (var item in p.MapInt32Removed)
                     {
                         log.Debug("\tDelete key " + item.Key);
-                        this.Remove((K)(object)item.Key);
+                        V oldV;
+                        this._map.TryRemove((K)(object)item.Key, out oldV);
+                        this.RemoveItem(this.IndexOf(oldV));
                     }
 
                     foreach (var item in p.MapInt32)
@@ -166,15 +137,16 @@ namespace com.variflight.dataservice.client
                         {
                             log.Debug("\tAdd key " + item.Key);
                             var v = Activator.CreateInstance<V>();
-                            ((DAO)v).MergeFromMessage(dic[item.Key] as IMessage, true, null);
-                            this.Add((K)(object)item.Key, v);
+                            ((IDAO)v).MergeFromMessage(dic[item.Key] as IMessage, true, null);
+                            this._map[(K)(object)item.Key] = v;
+                            this.InsertItem(this.Count, v);
                         }
                         else
                         {
                             log.Debug("\tUpdate key " + item.Key);
                             V currentItem;
                             this.TryGetValue((K)(object)item.Key, out currentItem);
-                            ((DAO)currentItem).MergeFromMessage(dic[item.Key] as IMessage, false, item.Value);
+                            ((IDAO)currentItem).MergeFromMessage(dic[item.Key] as IMessage, false, item.Value);
                         }
                     }
                 }
@@ -184,7 +156,9 @@ namespace com.variflight.dataservice.client
                     foreach (var item in p.MapInt64Removed)
                     {
                         log.Debug("\tDelete key " + item.Key);
-                        this.Remove((K)(object)item.Key);
+                        V oldV;
+                        this._map.TryRemove((K)(object)item.Key, out oldV);
+                        this.RemoveItem(this.IndexOf(oldV));
                     }
 
                     foreach (var item in p.MapInt64)
@@ -193,15 +167,16 @@ namespace com.variflight.dataservice.client
                         {
                             log.Debug("\tAdd key " + item.Key);
                             var v = Activator.CreateInstance<V>();
-                            ((DAO)v).MergeFromMessage(dic[item.Key] as IMessage, true, null);
-                            this.Add((K)(object)item.Key, v);
+                            ((IDAO)v).MergeFromMessage(dic[item.Key] as IMessage, true, null);
+                            this._map[(K)(object)item.Key] = v;
+                            this.InsertItem(this.Count, v);
                         }
                         else
                         {
                             log.Debug("\tUpdate key " + item.Key);
                             V currentItem;
                             this.TryGetValue((K)(object)item.Key, out currentItem);
-                            ((DAO)currentItem).MergeFromMessage(dic[item.Key] as IMessage, false, item.Value);
+                            ((IDAO)currentItem).MergeFromMessage(dic[item.Key] as IMessage, false, item.Value);
                         }
                     }
                 }
@@ -211,7 +186,9 @@ namespace com.variflight.dataservice.client
                     foreach (var item in p.MapBoolRemoved)
                     {
                         log.Debug("\tDelete key " + item.Key);
-                        this.Remove((K)(object)item.Key);
+                        V oldV;
+                        this._map.TryRemove((K)(object)item.Key, out oldV);
+                        this.RemoveItem(this.IndexOf(oldV));
                     }
                     foreach (var item in p.MapBool)
                     {
@@ -219,19 +196,65 @@ namespace com.variflight.dataservice.client
                         {
                             log.Debug("\tAdd key " + item.Key);
                             var v = Activator.CreateInstance<V>();
-                            ((DAO)v).MergeFromMessage(dic[item.Key] as IMessage, true, null);
-                            this.Add((K)(object)item.Key, v);
+                            ((IDAO)v).MergeFromMessage(dic[item.Key] as IMessage, true, null);
+                            this._map[(K)(object)item.Key] = v;
+                            this.InsertItem(this.Count, v);
                         }
                         else
                         {
                             log.Debug("\tUpdate key " + item.Key);
                             V currentItem;
                             this.TryGetValue((K)(object)item.Key, out currentItem);
-                            ((DAO)currentItem).MergeFromMessage(dic[item.Key] as IMessage, false, item.Value);
+                            ((IDAO)currentItem).MergeFromMessage(dic[item.Key] as IMessage, false, item.Value);
                         }
                     }
                 }
             }
+        }
+
+        public bool ContainsKey(K key)
+        {
+            return this._map.ContainsKey(key);
+        }
+
+        public void Add(K key, V value)
+        {
+            throw new NotSupportedException();
+        }
+
+        public bool Remove(K key)
+        {
+            throw new NotSupportedException();
+        }
+
+        public bool TryGetValue(K key, out V value)
+        {
+            return this._map.TryGetValue(key, out value);
+        }
+
+        public void Add(KeyValuePair<K, V> item)
+        {
+            throw new NotSupportedException();
+        }
+
+        public bool Contains(KeyValuePair<K, V> item)
+        {
+            return this._map.ContainsKey(item.Key);
+        }
+
+        public void CopyTo(KeyValuePair<K, V>[] array, int arrayIndex)
+        {
+            throw new NotSupportedException();
+        }
+
+        public bool Remove(KeyValuePair<K, V> item)
+        {
+            throw new NotSupportedException();
+        }
+
+        IEnumerator<KeyValuePair<K, V>> IEnumerable<KeyValuePair<K, V>>.GetEnumerator()
+        {
+            return _map.GetEnumerator();
         }
     }
 }
