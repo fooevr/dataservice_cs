@@ -9,15 +9,10 @@
         Title="MainWindow" Height="450" Width="800">
     <Grid>
 
-        <dxg:GridControl ItemsSource="{Binding Data.results}">
+        <dxg:GridControl ItemsSource="{Binding Data.value}" AutoGenerateColumns="AddNew">
             <dxg:GridControl.View>
                 <dxg:TableView ShowTotalSummary="False"/>
             </dxg:GridControl.View>
-            <dxg:GridColumn FieldName="s.id"/>
-            <dxg:GridColumn FieldName="s.name"/>
-            <dxg:GridColumn FieldName="s.age"/>
-            <dxg:GridColumn FieldName="s.tags"/>
-            <dxg:GridColumn FieldName="s.s.name"/>
         </dxg:GridControl>
 
     </Grid>

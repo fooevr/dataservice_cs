@@ -1,6 +1,7 @@
 ﻿using System.ComponentModel;
 using System.Windows;
 using com.variflight.dataservice.client;
+using Com.Variflight.Fidstest.Flight;
 using Google.Protobuf.WellKnownTypes;
 
 namespace test
@@ -10,13 +11,14 @@ namespace test
     /// </summary>
     public partial class MainWindow : Window, INotifyPropertyChanged
     {
-        private Grpc.Core.Channel channel = new Grpc.Core.Channel("10.9.9.131:11180", Grpc.Core.ChannelCredentials.Insecure);
-        private Com.Variflight.Dataservice.Test.ScoreService.ScoreServiceClient client = null;
-
+        private Grpc.Core.Channel channel = new Grpc.Core.Channel("192.168.203.244:8081", Grpc.Core.ChannelCredentials.Insecure);
+        //private Com.Variflight.Dataservice.Test.ScoreService.ScoreServiceClient client = null;
+        private FlightService.FlightServiceClient client = null;
         public event PropertyChangedEventHandler PropertyChanged;
 
-        private Com.Variflight.Dataservice.Test.dao.StudentScoresMap _data;
-        public Com.Variflight.Dataservice.Test.dao.StudentScoresMap Data { 
+        private Com.Variflight.Fidstest.Flight.dao.FlightList _data;
+        public Com.Variflight.Fidstest.Flight.dao.FlightList Data
+        {
             get
             {
                 return _data;
@@ -30,13 +32,14 @@ namespace test
         public MainWindow()
         {
             InitializeComponent();
-            client = new Com.Variflight.Dataservice.Test.ScoreService.ScoreServiceClient(channel);
+            client = new FlightService.FlightServiceClient(channel);
             this.DataContext = this;
         }
 
         private void Window_Loaded(object sender, RoutedEventArgs e)
         {
-            client.LoopCall(client.GetAllScoresAsync, new Empty(), (Com.Variflight.Dataservice.Test.dao.StudentScoresMap data) => {
+            client.LoopCall(client.PullFlightInfoAsync, new Nothing(), (Com.Variflight.Fidstest.Flight.dao.FlightList data) =>
+            {
                 this.Data = data;
             });
         }

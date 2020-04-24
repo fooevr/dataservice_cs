@@ -1,0 +1,49 @@
+syntax = "proto3";
+
+import "google/protobuf/wrappers.proto";
+package com.variflight.fidstest.flight;
+
+message FlightInfo{
+    string fid = 1;
+    bool isArrive = 2;
+    string f_no = 3;
+    int64 f_date = 4;
+    google.protobuf.StringValue a_no = 5;
+    string dep = 6;
+    string arr = 7;
+    int64 std = 8;
+    int64 sta = 9;
+    google.protobuf.Int64Value etd = 10;
+    google.protobuf.Int64Value eta = 11;
+    google.protobuf.Int64Value atd = 12;
+    google.protobuf.Int64Value ata = 13;
+    google.protobuf.StringValue f_mode = 14;
+    string al_iata = 15;
+    string al_icao = 16;
+    string cla = 17;
+    string f_status = 18;
+    google.protobuf.StringValue delay_code = 19;
+    google.protobuf.StringValue delay_cn = 20;
+    google.protobuf.StringValue sflight = 21;
+    google.protobuf.StringValue stand = 22;
+    google.protobuf.StringValue gate = 23;
+    google.protobuf.StringValue car = 24;
+    google.protobuf.StringValue mp1 = 25;
+    google.protobuf.StringValue cid = 26;
+    google.protobuf.StringValue cld = 27;
+    google.protobuf.StringValue cea = 28;
+    google.protobuf.StringValue vl = 29;
+}
+
+message Nothing{
+    string test = 1;
+}
+
+message FlightList{
+    map<string, FlightInfo> value = 1;
+}
+
+service FlightService{
+    rpc PullFlightInfo(Nothing)returns(FlightList);
+    rpc Stream(Nothing)returns(stream Nothing);
+}
